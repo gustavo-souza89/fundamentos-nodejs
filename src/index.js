@@ -13,6 +13,25 @@ const customers = [];
  * id - uuid
  * statement []
  */
+
+//Middleware
+
+function verifyIfExistsAccountCPF(request, response, next) {
+    //Obs: headers utilizado no lugar de params pq futuramente usará tokens no headers
+    const{cpf} = request.headers;
+
+    const customer = customers.find(customer => customer.cpf === cpf);
+
+    if(!customer) {
+        return response.status(400).json({error: "Customer not found"})
+    }
+
+    request.customer = customer;
+
+    return next();
+}
+
+
 //Criação da Conta - Validando CPF
 app.post("/account", (request, response) => {
     const { cpf, name } = request.body;
@@ -35,16 +54,12 @@ app.post("/account", (request, response) => {
     });
 
 
+//Tudo que estiver abaixo deste middleware validará o CPF    
+//app.use(verifyIfExistsAccountCPF);
+
 //Busca do extrato bancário
-app.get("/statement", (request, response) => {
-    //Obs: headers utilizado no lugar de params pq futuramente usará tokens no headers
-    const{cpf} = request.headers;
-    const customer = customers.find(customer => customer.cpf === cpf);
-
-    if(!customer) {
-        return response.status(400).json({error: "Customer not found"})
-    }
-
+app.get("/statement", verifyIfExistsAccountCPF, (request, response) => {
+    const {customer} = request;
     return response.json(customer.statement);
 });
 
